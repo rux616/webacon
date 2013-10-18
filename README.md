@@ -1,12 +1,12 @@
 WeBaCon
-=======
+===
 
 'Cause who doesn't like bacon?
 
 WeMo Basic Control - Allows one to issue basic commands to a WeMo unit via the command line.
 
 Command line options
--------
+---
 ```
 -i <interface>
 ```
@@ -31,3 +31,11 @@ Time out in seconds.  How long the script will wait before giving up on finding 
 -h
 ```
 Shows the help.
+
+Credits
+---
+Issac Kelley for his proof of concept code:  
+https://github.com/issackelly/wemo
+
+Craig Heffner for building Miranda UPnP:  
+https://code.google.com/p/miranda-upnp/

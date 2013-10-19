@@ -15,6 +15,9 @@
 # https://code.google.com/p/miranda-upnp/
 #
 # Version:
+# 1.0.1 (2013-10-18):
+# - Changed the order of the functions
+#
 # 1.0 (2013-10-12):
 # - Initial release
 #
@@ -25,6 +28,58 @@ import getopt
 
 # Requires Miranda v1.4
 from miranda import upnp, msearch
+
+# Show usage
+def showusage():
+	print "Usage: %s [OPTIONS]\n"\
+		"  -i <interface>         Set interface\n"\
+		"  -s <serial number>     Set serial number\n"\
+		"  -c <status|on|off>     Send command to WeMo\n"\
+		"  -t <seconds>           Set the timeout in seconds, default is 3\n"\
+		"  -h                     Show help" % sys.argv[0]
+	return
+
+# Send request to a WeMo socket
+def _send(hp, action, data=None):
+    if not data:
+        data = {}
+    hostInfo = hp.ENUM_HOSTS[0]
+    deviceName = 'controllee'
+    serviceName = 'basicevent'
+    controlURL = hostInfo['proto'] + hostInfo['name']
+    controlURL2 = hostInfo['deviceList'][deviceName]['services'][serviceName]['controlURL']
+    if not controlURL.endswith('/') and not controlURL2.startswith('/'):
+        controlURL += '/'
+    controlURL += controlURL2
+
+    response = hp.sendSOAP(
+        hostInfo['name'],
+        'urn:Belkin:service:basicevent:1',
+        controlURL,
+        action,
+        data
+    )
+    return response
+
+# Gets the state of a WeMo socket
+def get(hp):
+    response = _send(hp, 'GetBinaryState')
+    tagValue = hp.extractSingleTag(response, 'BinaryState')
+    return True if tagValue == '1' else False
+
+# Turns a WeMo socket on
+def on(hp):
+    # BinaryState is set to 'Error' in the case that it was already on.
+    response = _send(hp, 'SetBinaryState', {'BinaryState': (1, 'Boolean')})
+    tagValue = hp.extractSingleTag(response, 'BinaryState')
+    return True if tagValue in ['1', 'Error'] else False
+
+# Turns a WeMo socket off
+def off(hp):
+    # BinaryState is set to 'Error' in the case that it was already off.
+    response = _send(hp, 'SetBinaryState', {'BinaryState': (0, 'Boolean')})
+    tagValue = hp.extractSingleTag(response, 'BinaryState')
+    return True if tagValue in ['0', 'Error'] else False
 
 def main(argv):
 	# Set defaults
@@ -111,58 +166,6 @@ def main(argv):
 	else:
 		print "wemo: command_unknown"
 		sys.exit(1)
-
-# Show usage
-def showusage():
-	print "Usage: %s [OPTIONS]\n"\
-		"  -i <interface>         Set interface\n"\
-		"  -s <serial number>     Set serial number\n"\
-		"  -c <status|on|off>     Send command to WeMo\n"\
-		"  -t <seconds>           Set the timeout in seconds, default is 3\n"\
-		"  -h                     Show help" % sys.argv[0]
-	return
-
-# Send request to a WeMo socket
-def _send(hp, action, data=None):
-    if not data:
-        data = {}
-    hostInfo = hp.ENUM_HOSTS[0]
-    deviceName = 'controllee'
-    serviceName = 'basicevent'
-    controlURL = hostInfo['proto'] + hostInfo['name']
-    controlURL2 = hostInfo['deviceList'][deviceName]['services'][serviceName]['controlURL']
-    if not controlURL.endswith('/') and not controlURL2.startswith('/'):
-        controlURL += '/'
-    controlURL += controlURL2
-
-    response = hp.sendSOAP(
-        hostInfo['name'],
-        'urn:Belkin:service:basicevent:1',
-        controlURL,
-        action,
-        data
-    )
-    return response
-
-# Gets the state of a WeMo socket
-def get(hp):
-    response = _send(hp, 'GetBinaryState')
-    tagValue = hp.extractSingleTag(response, 'BinaryState')
-    return True if tagValue == '1' else False
-
-# Turns a WeMo socket on
-def on(hp):
-    # BinaryState is set to 'Error' in the case that it was already on.
-    response = _send(hp, 'SetBinaryState', {'BinaryState': (1, 'Boolean')})
-    tagValue = hp.extractSingleTag(response, 'BinaryState')
-    return True if tagValue in ['1', 'Error'] else False
-
-# Turns a WeMo socket off
-def off(hp):
-    # BinaryState is set to 'Error' in the case that it was already off.
-    response = _send(hp, 'SetBinaryState', {'BinaryState': (0, 'Boolean')})
-    tagValue = hp.extractSingleTag(response, 'BinaryState')
-    return True if tagValue in ['0', 'Error'] else False
 
 if __name__ == "__main__":
 	try:
